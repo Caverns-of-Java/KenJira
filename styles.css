@@ -1,0 +1,201 @@
+:root {
+  --bg: #eaf3ff;
+  --panel: #f9fcff;
+  --text: #1a2f4a;
+  --muted: #5a7390;
+  --line: #bfd1e6;
+  --accent: #1e66b3;
+  --danger: #c63f17;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: radial-gradient(circle at top left, #d8eaff, var(--bg));
+  color: var(--text);
+}
+
+#app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+button,
+select,
+input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  background: var(--panel);
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+.landing-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.status-column {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+.status-column h2 {
+  margin-top: 0;
+}
+
+.epic-lane {
+  margin-bottom: 1rem;
+}
+
+.epic-lane h3 {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-title {
+  margin: 0;
+}
+
+.card-meta,
+.card-status {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.archive-header,
+.archive-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.archive-list {
+  margin-top: 1rem;
+}
+
+dialog {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  width: min(700px, 92vw);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+#cardForm {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checklist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checklist-editor {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.2rem;
+}
+
+.checklist-item-row {
+  display: grid;
+  grid-template-columns: 1fr 170px auto;
+  gap: 0.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.error {
+  color: var(--danger);
+  min-height: 1.25rem;
+}
+
+@media (max-width: 760px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .landing-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .status-column {
+    margin-bottom: 0.75rem;
+  }
+
+  .checklist-item-row {
+    grid-template-columns: 1fr;
+  }
+}

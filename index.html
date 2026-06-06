@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KenJira</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="toolbar">
+      <h1>KenJira</h1>
+      <div class="toolbar-actions">
+        <label for="epicFilter">Filter</label>
+        <select id="epicFilter">
+          <option value="ALL">All Epics</option>
+        </select>
+        <button id="addBtn" type="button">Add</button>
+        <button id="archiveBtn" type="button">Archive</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="landingView" class="view active"></section>
+      <section id="archiveView" class="view">
+        <div class="archive-header">
+          <h2>Archive</h2>
+          <button id="backToLandingBtn" type="button">Back</button>
+        </div>
+        <div class="archive-controls">
+          <label for="archiveEpicFilter">Epic</label>
+          <select id="archiveEpicFilter">
+            <option value="ALL">All Epics</option>
+          </select>
+        </div>
+        <div id="archiveList" class="archive-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="cardModal">
+    <form id="cardForm" method="dialog">
+      <h3 id="cardModalTitle">Add Card</h3>
+      <input id="cardId" type="hidden">
+
+      <label for="titleInput">Title</label>
+      <input id="titleInput" required>
+
+      <label for="epicSelect">Epic</label>
+      <select id="epicSelect"></select>
+
+      <label for="newEpicInput">Or New Epic (override)</label>
+      <input id="newEpicInput" placeholder="Optional new epic name">
+
+      <label for="statusInput">Status</label>
+      <select id="statusInput">
+        <option>To Do</option>
+        <option>In Progress</option>
+        <option>Complete</option>
+      </select>
+
+      <label for="statusOverrideInput" class="checkbox-row">
+        <input id="statusOverrideInput" type="checkbox">
+        Keep this status as manual override
+      </label>
+
+      <div class="checklist-header">
+        <h4>Checklist</h4>
+        <button id="addChecklistItemBtn" type="button">+ Item</button>
+      </div>
+      <div id="checklistEditor" class="checklist-editor"></div>
+
+      <div class="modal-actions">
+        <button id="cancelModalBtn" type="button">Cancel</button>
+        <button id="saveModalBtn" type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="passcodeDialog">
+    <form id="passcodeForm" method="dialog">
+      <h2>Enter Passcode</h2>
+      <label for="passcodeInput">Passcode</label>
+      <input id="passcodeInput" type="password" autocomplete="off" required>
+      <p id="passcodeError" class="error"></p>
+      <div class="modal-actions">
+        <button id="unlockBtn" type="submit">Unlock</button>
+      </div>
+    </form>
+  </dialog>
+
+  <template id="cardTemplate">
+    <article class="card">
+      <h4 class="card-title"></h4>
+      <p class="card-meta"></p>
+      <p class="card-status"></p>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
