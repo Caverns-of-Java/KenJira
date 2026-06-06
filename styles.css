@@ -19,10 +19,14 @@ body {
   color: var(--text);
 }
 
+body.locked #app {
+  display: none;
+}
+
 #app {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0.75rem;
 }
 
 .toolbar {
@@ -63,6 +67,59 @@ button:hover {
   display: block;
 }
 
+.landing-desktop-grid {
+  margin-top: 1rem;
+}
+
+.status-header-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.status-header-row h2 {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: 1rem;
+}
+
+.epic-rows {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.epic-row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 0.55rem;
+}
+
+.epic-row-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.epic-row-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.epic-cell {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.35rem;
+  background: #ffffff;
+  min-height: 48px;
+}
+
 .landing-columns {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -74,7 +131,7 @@ button:hover {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 0.75rem;
+  padding: 0.55rem;
 }
 
 .status-column h2 {
@@ -82,12 +139,12 @@ button:hover {
 }
 
 .epic-lane {
-  margin-bottom: 1rem;
+  margin-bottom: 0.65rem;
 }
 
 .epic-lane h3 {
-  margin: 0.25rem 0 0.5rem;
-  font-size: 0.95rem;
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.85rem;
   color: var(--muted);
 }
 
@@ -95,19 +152,40 @@ button:hover {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #ffffff;
-  padding: 0.6rem;
-  margin-bottom: 0.5rem;
+  padding: 0.45rem;
+  margin-bottom: 0.35rem;
+}
+
+.draggable-card {
+  cursor: grab;
+}
+
+.draggable-card:active {
+  cursor: grabbing;
+}
+
+.card.dragging {
+  opacity: 0.6;
+  border-color: var(--accent);
+}
+
+.epic-cell.drag-over {
+  border-color: var(--accent);
+  background: #edf5ff;
 }
 
 .card-title {
   margin: 0;
+  font-size: 0.93rem;
+  line-height: 1.2;
 }
 
 .card-meta,
 .card-status {
-  margin: 0.25rem 0 0;
+  margin: 0.15rem 0 0;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
 }
 
 .archive-header,
@@ -177,6 +255,10 @@ dialog::backdrop {
 }
 
 @media (max-width: 760px) {
+  .landing-desktop-grid {
+    display: none;
+  }
+
   .toolbar {
     flex-direction: column;
     align-items: flex-start;

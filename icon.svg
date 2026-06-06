@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="KenJira icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f7ed6"/>
+      <stop offset="1" stop-color="#1e66b3"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <path d="M120 116h72v138l116-138h91L270 258l138 138h-98L192 274v122h-72z" fill="#ffffff"/>
+</svg>

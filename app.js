@@ -16,7 +16,10 @@ const appState = {
   archiveEpic: "ALL",
   editingCardId: null,
   isArchiveView: false,
-  mobileInitialized: false
+  mobileInitialized: false,
+  draggedCardId: null,
+  suppressNextCardClick: false,
+  isBootstrapped: false
 };
 
 const el = {
@@ -48,11 +51,36 @@ const el = {
 };
 
 async function init() {
+  registerServiceWorker();
+  wireEvents();
   if (!sessionStorage.getItem("kenjira_unlocked")) {
+    document.body.classList.add("locked");
     el.passcodeDialog.showModal();
+    return;
   }
 
-  wireEvents();
+  await bootstrapApp();
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+      console.error("Service worker registration failed", error);
+    });
+  });
+}
+
+async function bootstrapApp() {
+  if (appState.isBootstrapped) {
+    return;
+  }
+
+  appState.isBootstrapped = true;
+  document.body.classList.remove("locked");
   await refreshData();
   render();
 }
@@ -118,6 +146,7 @@ function wireEvents() {
     sessionStorage.setItem("kenjira_unlocked", "1");
     el.passcodeError.textContent = "";
     el.passcodeDialog.close();
+    await bootstrapApp();
   });
 }
 
@@ -201,8 +230,106 @@ function renderLanding() {
 
   const root = el.landingView;
   root.innerHTML = "";
+  if (window.matchMedia("(max-width: 760px)").matches) {
+    renderLandingMobile(root);
+    return;
+  }
+
+  const visibleCards = appState.cards.filter((card) => {
+    return appState.activeEpic === "ALL" || card.epic === appState.activeEpic;
+  });
+
+  const desktopGrid = document.createElement("div");
+  desktopGrid.className = "landing-desktop-grid";
+
+  const statusHeaderRow = document.createElement("div");
+  statusHeaderRow.className = "status-header-row";
+  [STATUS.TODO, STATUS.IN_PROGRESS, STATUS.COMPLETE].forEach((status) => {
+    const heading = document.createElement("h2");
+    heading.textContent = status;
+    statusHeaderRow.appendChild(heading);
+  });
+  desktopGrid.appendChild(statusHeaderRow);
+
+  const epicRows = document.createElement("div");
+  epicRows.className = "epic-rows";
+  const epics = getLandingEpicOrder(visibleCards);
+
+  epics.forEach((epic) => {
+    const epicRow = document.createElement("section");
+    epicRow.className = "epic-row";
+
+    const epicTitle = document.createElement("h3");
+    epicTitle.className = "epic-row-title";
+    epicTitle.textContent = epic;
+    epicRow.appendChild(epicTitle);
+
+    const rowColumns = document.createElement("div");
+    rowColumns.className = "epic-row-columns";
+
+    [STATUS.TODO, STATUS.IN_PROGRESS, STATUS.COMPLETE].forEach((status) => {
+      const laneCell = document.createElement("div");
+      laneCell.className = "epic-cell";
+      laneCell.dataset.epic = epic;
+      laneCell.dataset.status = status;
+
+      laneCell.addEventListener("dragover", (event) => {
+        const draggedCard = appState.cards.find((card) => card.id === appState.draggedCardId);
+        if (!draggedCard || draggedCard.epic !== epic) {
+          return;
+        }
+        event.preventDefault();
+        laneCell.classList.add("drag-over");
+      });
+
+      laneCell.addEventListener("dragleave", () => {
+        laneCell.classList.remove("drag-over");
+      });
+
+      laneCell.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        laneCell.classList.remove("drag-over");
+
+        const draggedCard = appState.cards.find((card) => card.id === appState.draggedCardId);
+        appState.draggedCardId = null;
+        clearDropHighlights();
+
+        if (!draggedCard || draggedCard.epic !== epic || draggedCard.status === status) {
+          return;
+        }
+
+        try {
+          await applyManualStatusOverride(draggedCard, status);
+        } catch (error) {
+          console.error(error);
+          alert("Unable to move card. Please try again.");
+        }
+      });
+
+      visibleCards
+        .filter((card) => card.epic === epic && card.status === status)
+        .forEach((card) => {
+          laneCell.appendChild(renderCard(card, false, true));
+        });
+
+      rowColumns.appendChild(laneCell);
+    });
+
+    epicRow.appendChild(rowColumns);
+    epicRows.appendChild(epicRow);
+  });
+
+  desktopGrid.appendChild(epicRows);
+  root.appendChild(desktopGrid);
+}
+
+function renderLandingMobile(root) {
   const columns = document.createElement("div");
   columns.className = "landing-columns";
+
+  const landingEpicOrder = getLandingEpicOrder(
+    appState.cards.filter((card) => appState.activeEpic === "ALL" || card.epic === appState.activeEpic)
+  );
 
   [STATUS.TODO, STATUS.IN_PROGRESS, STATUS.COMPLETE].forEach((status) => {
     const column = document.createElement("section");
@@ -218,7 +345,7 @@ function renderLanding() {
     });
 
     const byEpic = groupByEpic(cardsInColumn);
-    Object.keys(byEpic).sort().forEach((epic) => {
+    landingEpicOrder.filter((epic) => !!byEpic[epic]).forEach((epic) => {
       const lane = document.createElement("div");
       lane.className = "epic-lane";
       const laneTitle = document.createElement("h3");
@@ -226,7 +353,7 @@ function renderLanding() {
       lane.appendChild(laneTitle);
 
       byEpic[epic].forEach((card) => {
-        lane.appendChild(renderCard(card, false));
+        lane.appendChild(renderCard(card, false, false));
       });
 
       column.appendChild(lane);
@@ -238,6 +365,31 @@ function renderLanding() {
   root.appendChild(columns);
 }
 
+function getLandingEpicOrder(cards) {
+  const stats = new Map();
+  cards.forEach((card) => {
+    const epic = card.epic;
+    const timestamp = new Date(card.dateAdded).getTime();
+    const safeTimestamp = Number.isFinite(timestamp) ? timestamp : 0;
+    const existing = stats.get(epic) || { latest: 0, count: 0 };
+    existing.latest = Math.max(existing.latest, safeTimestamp);
+    existing.count += 1;
+    stats.set(epic, existing);
+  });
+
+  return [...stats.entries()]
+    .sort((a, b) => {
+      if (b[1].latest !== a[1].latest) {
+        return b[1].latest - a[1].latest;
+      }
+      if (b[1].count !== a[1].count) {
+        return b[1].count - a[1].count;
+      }
+      return a[0].localeCompare(b[0]);
+    })
+    .map(([epic]) => epic);
+}
+
 function renderArchive() {
   renderEpicFilter(el.archiveEpicFilter, appState.epicsArchive, appState.archiveEpic, true);
   el.archiveList.innerHTML = "";
@@ -247,19 +399,68 @@ function renderArchive() {
     .sort((a, b) => new Date(b.dateCompleted).getTime() - new Date(a.dateCompleted).getTime());
 
   for (const card of cards) {
-    el.archiveList.appendChild(renderCard(card, true));
+    el.archiveList.appendChild(renderCard(card, true, false));
   }
 }
 
-function renderCard(card, isArchive) {
+function renderCard(card, isArchive, canDrag) {
   const fragment = el.cardTemplate.content.cloneNode(true);
   const article = fragment.querySelector(".card");
   fragment.querySelector(".card-title").textContent = card.title;
   fragment.querySelector(".card-meta").textContent = `Epic: ${card.epic}`;
   fragment.querySelector(".card-status").textContent = `Status: ${card.status}`;
 
-  article.addEventListener("click", () => openCardModal(card, isArchive));
+  if (canDrag) {
+    article.classList.add("draggable-card");
+    article.setAttribute("draggable", "true");
+    article.addEventListener("dragstart", (event) => {
+      appState.draggedCardId = card.id;
+      event.dataTransfer.effectAllowed = "move";
+      article.classList.add("dragging");
+    });
+    article.addEventListener("dragend", () => {
+      article.classList.remove("dragging");
+      appState.draggedCardId = null;
+      appState.suppressNextCardClick = true;
+      clearDropHighlights();
+      setTimeout(() => {
+        appState.suppressNextCardClick = false;
+      }, 0);
+    });
+  }
+
+  article.addEventListener("click", () => {
+    if (appState.suppressNextCardClick) {
+      return;
+    }
+    openCardModal(card, isArchive);
+  });
   return fragment;
+}
+
+function clearDropHighlights() {
+  el.landingView.querySelectorAll(".epic-cell.drag-over").forEach((node) => {
+    node.classList.remove("drag-over");
+  });
+}
+
+async function applyManualStatusOverride(card, nextStatus) {
+  const payload = {
+    title: card.title,
+    epic: card.epic,
+    status: nextStatus,
+    statusOverride: true,
+    checklist: Array.isArray(card.checklist) ? card.checklist : []
+  };
+
+  await apiPost("updateCard", {
+    id: card.id,
+    card: payload,
+    sourceView: "landing"
+  });
+
+  await refreshData();
+  renderLanding();
 }
 
 function renderEpicFilter(selectEl, epics, selected, includeAll) {
