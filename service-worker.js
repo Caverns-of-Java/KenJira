@@ -1,4 +1,4 @@
-const CACHE_NAME = "kenjira-shell-v1";
+const CACHE_NAME = "kenjira-shell-v2";
 const APP_SHELL_FILES = [
   "./",
   "./index.html",
