@@ -216,6 +216,22 @@ dialog::backdrop {
   gap: 0.5rem;
 }
 
+.status-radio-group {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.status-radio-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;
@@ -238,8 +254,26 @@ dialog::backdrop {
 
 .checklist-item-row {
   display: grid;
-  grid-template-columns: 1fr 170px auto;
+  grid-template-columns: 1fr minmax(260px, auto) auto;
   gap: 0.5rem;
+}
+
+.checklist-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.35rem 0.45rem;
+  background: var(--panel);
+}
+
+.checklist-status label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.86rem;
 }
 
 .modal-actions {
@@ -278,6 +312,21 @@ dialog::backdrop {
   }
 
   .checklist-item-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+  }
+
+  .checklist-text {
+    grid-column: 1 / -1;
+  }
+
+  .checklist-status {
+    grid-column: 1;
+    min-height: 100%;
+  }
+
+  .checklist-remove {
+    grid-column: 2;
+    align-self: stretch;
   }
 }

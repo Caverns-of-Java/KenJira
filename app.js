@@ -162,11 +162,12 @@ function readCardFormPayload() {
   }
 
   const checklist = collectChecklistEditorItems();
+  const hasChecklistItems = checklist.length > 0;
   return {
     title,
     epic,
-    status: el.statusInput.value,
-    statusOverride: !!el.statusOverrideInput.checked,
+    status: getStatusInputValue(),
+    statusOverride: hasChecklistItems ? !!el.statusOverrideInput.checked : true,
     checklist
   };
 }
@@ -511,9 +512,14 @@ function openCardModal(card = null, isArchive = false) {
     if ([...el.epicSelect.options].some((opt) => opt.value === card.epic)) {
       el.epicSelect.value = card.epic;
     }
+  } else {
+    const defaultEpic = getDefaultEpicForNewCard([...allEpics]);
+    if (defaultEpic) {
+      el.epicSelect.value = defaultEpic;
+    }
   }
 
-  el.statusInput.value = card ? card.status : STATUS.TODO;
+  setStatusInputValue(card ? card.status : STATUS.TODO);
   el.statusOverrideInput.checked = card ? !!card.statusOverride : false;
   el.statusInput.disabled = false;
   el.statusOverrideInput.disabled = false;
@@ -523,6 +529,7 @@ function openCardModal(card = null, isArchive = false) {
 
   const checklist = card && Array.isArray(card.checklist) ? card.checklist : [];
   renderChecklistEditor(checklist);
+  syncStatusOverrideAvailability();
 
   if (isArchive) {
     el.titleInput.readOnly = true;
@@ -541,12 +548,14 @@ function renderChecklistEditor(items) {
   el.checklistEditor.innerHTML = "";
   if (!items.length) {
     addChecklistEditorRow();
+    syncStatusOverrideAvailability();
     return;
   }
 
   for (const item of items) {
     addChecklistEditorRow(item.text, item.status);
   }
+  syncStatusOverrideAvailability();
 }
 
 function addChecklistEditorRow(text = "", status = STATUS.TODO) {
@@ -557,25 +566,35 @@ function addChecklistEditorRow(text = "", status = STATUS.TODO) {
   textInput.placeholder = "Checklist item";
   textInput.value = text;
   textInput.className = "checklist-text";
+  textInput.addEventListener("input", () => syncStatusOverrideAvailability());
 
-  const statusInput = document.createElement("select");
+  const statusInput = document.createElement("div");
   statusInput.className = "checklist-status";
+  const safeStatus = sanitizeStatusValue(status);
+  const groupName = `checklistStatus_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   [STATUS.TODO, STATUS.IN_PROGRESS, STATUS.COMPLETE].forEach((value) => {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = value;
-    statusInput.appendChild(option);
+    const label = document.createElement("label");
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = groupName;
+    radio.value = value;
+    radio.checked = value === safeStatus;
+    label.append(radio, document.createTextNode(` ${value}`));
+    statusInput.appendChild(label);
   });
-  statusInput.value = status;
 
   const removeBtn = document.createElement("button");
   removeBtn.type = "button";
   removeBtn.textContent = "Remove";
   removeBtn.className = "checklist-remove";
-  removeBtn.addEventListener("click", () => row.remove());
+  removeBtn.addEventListener("click", () => {
+    row.remove();
+    syncStatusOverrideAvailability();
+  });
 
   row.append(textInput, statusInput, removeBtn);
   el.checklistEditor.appendChild(row);
+  syncStatusOverrideAvailability();
 }
 
 function lockChecklistEditor(isLocked) {
@@ -591,10 +610,75 @@ function collectChecklistEditorItems() {
   return rows
     .map((row) => {
       const text = row.querySelector(".checklist-text").value.trim();
-      const status = row.querySelector(".checklist-status").value;
+      const checked = row.querySelector(".checklist-status input[type='radio']:checked");
+      const status = checked ? sanitizeStatusValue(checked.value) : STATUS.TODO;
       return { text, status };
     })
     .filter((item) => item.text.length > 0);
+}
+
+function sanitizeStatusValue(value) {
+  if (value === STATUS.TODO || value === STATUS.IN_PROGRESS || value === STATUS.COMPLETE) {
+    return value;
+  }
+  return STATUS.TODO;
+}
+
+function getStatusInputValue() {
+  const checked = el.statusInput.querySelector("input[name='cardStatus']:checked");
+  return checked ? sanitizeStatusValue(checked.value) : STATUS.TODO;
+}
+
+function setStatusInputValue(status) {
+  const safe = sanitizeStatusValue(status);
+  const candidate = el.statusInput.querySelector(`input[name='cardStatus'][value='${safe}']`);
+  if (candidate) {
+    candidate.checked = true;
+  }
+}
+
+function hasChecklistText() {
+  return [...el.checklistEditor.querySelectorAll(".checklist-text")].some((input) => input.value.trim().length > 0);
+}
+
+function syncStatusOverrideAvailability() {
+  if (appState.isArchiveView) {
+    return;
+  }
+
+  const checklistHasText = hasChecklistText();
+  if (!checklistHasText) {
+    el.statusOverrideInput.checked = true;
+    el.statusOverrideInput.disabled = true;
+    return;
+  }
+
+  el.statusOverrideInput.disabled = false;
+}
+
+function getDefaultEpicForNewCard(epicOptions) {
+  if (!Array.isArray(epicOptions) || epicOptions.length === 0) {
+    return "";
+  }
+
+  if (appState.activeEpic && appState.activeEpic !== "ALL" && epicOptions.includes(appState.activeEpic)) {
+    return appState.activeEpic;
+  }
+
+  const cardsByLatestDate = [...appState.cards, ...appState.archiveCards]
+    .filter((card) => epicOptions.includes(card.epic))
+    .map((card) => ({
+      epic: card.epic,
+      timestamp: new Date(card.dateAdded).getTime()
+    }))
+    .filter((entry) => Number.isFinite(entry.timestamp))
+    .sort((a, b) => b.timestamp - a.timestamp);
+
+  if (cardsByLatestDate.length) {
+    return cardsByLatestDate[0].epic;
+  }
+
+  return epicOptions.slice().sort()[0];
 }
 
 function groupByEpic(cards) {

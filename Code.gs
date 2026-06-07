@@ -120,7 +120,7 @@ function createCard_(input) {
 
   const nowIso = new Date().toISOString();
   const checklist = sanitizeChecklist_(input.checklist || []);
-  const statusOverride = !!input.statusOverride;
+  const statusOverride = !!input.statusOverride || checklist.length === 0;
   const derivedStatus = deriveStatus_(checklist);
   const status = sanitizeStatus_(statusOverride ? input.status : (input.status || derivedStatus));
 
@@ -182,7 +182,7 @@ function updateCard_(id, input, sourceView) {
     next.title = String(input.title || existing.title).trim();
     next.epic = String(input.epic || existing.epic).trim();
     next.checklist = sanitizeChecklist_(input.checklist || []);
-    next.statusOverride = !!input.statusOverride;
+    next.statusOverride = !!input.statusOverride || next.checklist.length === 0;
 
     const derived = deriveStatus_(next.checklist);
     const candidateStatus = next.statusOverride ? input.status : derived;
